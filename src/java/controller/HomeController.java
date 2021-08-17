@@ -5,12 +5,18 @@
  */
 package controller;
 
+import dao.ContactDAO;
+import dao.CountDAO;
+import dao.PhotoDAO;
+import entity.Gallery;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.List;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
 
 /**
  *
@@ -30,17 +36,56 @@ public class HomeController extends HttpServlet {
     protected void processRequest(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         response.setContentType("text/html;charset=UTF-8");
-        try (PrintWriter out = response.getWriter()) {
-            /* TODO output your page here. You may use following sample code. */
-            out.println("<!DOCTYPE html>");
-            out.println("<html>");
-            out.println("<head>");
-            out.println("<title>Servlet HomeController</title>");            
-            out.println("</head>");
-            out.println("<body>");
-            out.println("<h1>Servlet HomeController at " + request.getContextPath() + "</h1>");
-            out.println("</body>");
-            out.println("</html>");
+        try {
+            PhotoDAO photoDAO = new PhotoDAO();
+            ContactDAO contactDAO = new ContactDAO();
+            CountDAO countDAO = new CountDAO();
+            
+            int pageSize = 3;
+            int index = 0;
+            String pageIndex = request.getParameter("index");
+            //check index page
+            if (pageIndex != null) {
+                index = Integer.parseInt(pageIndex);
+            } else {
+                index = 1;
+            }
+            //get gallery with paging
+            int noOfGallery = photoDAO.countNoOfGallery();
+            int noPageOfGalleryList = noOfGallery/pageSize;
+            
+            if((noOfGallery % pageSize) != 0) {
+                noPageOfGalleryList ++;
+            }
+            List<Gallery> galleryList = photoDAO.getListGalleryWithPaging(index, pageSize);
+            
+            request.setAttribute("galleryList", galleryList);
+            request.setAttribute("index", index);
+            request.setAttribute("noPageOfGalleryList", noPageOfGalleryList);
+            request.setAttribute("noOfGallery", noOfGallery);
+            
+            //about context + feature_image
+            request.setAttribute("contact", contactDAO.getContactInfo());
+            
+            //get top 3 gallery
+            request.setAttribute("top3", photoDAO.getTop3Gallery());
+            
+            request.setAttribute("active", "0");
+            
+            HttpSession session = request.getSession();
+            if (session.isNew()) {
+                countDAO.addVisit();
+            }
+            
+            //get visit number info
+            int visit = countDAO.getVisit();
+            String visitStr = String.format("%05d", visit);
+            request.setAttribute("visit", visitStr);
+            
+            request.getRequestDispatcher("home.jsp").forward(request, response);
+        } catch (Exception e) {
+            request.setAttribute("error", e);
+            request.getRequestDispatcher("error.jsp").forward(request, response);
         }
     }
 

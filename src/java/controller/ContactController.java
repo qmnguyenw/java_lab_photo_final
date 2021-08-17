@@ -5,12 +5,16 @@
  */
 package controller;
 
+import dao.ContactDAO;
+import dao.CountDAO;
+import dao.PhotoDAO;
 import java.io.IOException;
 import java.io.PrintWriter;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
 
 /**
  *
@@ -30,17 +34,30 @@ public class ContactController extends HttpServlet {
     protected void processRequest(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         response.setContentType("text/html;charset=UTF-8");
-        try (PrintWriter out = response.getWriter()) {
-            /* TODO output your page here. You may use following sample code. */
-            out.println("<!DOCTYPE html>");
-            out.println("<html>");
-            out.println("<head>");
-            out.println("<title>Servlet ContactController</title>");            
-            out.println("</head>");
-            out.println("<body>");
-            out.println("<h1>Servlet ContactController at " + request.getContextPath() + "</h1>");
-            out.println("</body>");
-            out.println("</html>");
+        try {
+            PhotoDAO photoDAO = new PhotoDAO();
+            ContactDAO contactDAO = new ContactDAO();
+            CountDAO countDAO = new CountDAO();
+            //get top 3 gallery
+            request.setAttribute("top3", photoDAO.getTop3Gallery());
+            //get contact info
+            request.setAttribute("contact", contactDAO.getContactInfo());
+            
+            request.setAttribute("active", "4");
+            
+            HttpSession session = request.getSession();
+            if (session.isNew()) {
+                countDAO.addVisit();
+            }
+            //get visit number info
+            int visit = countDAO.getVisit();
+            String visitStr = String.format("%05d", visit);
+            request.setAttribute("visit", visitStr);
+            
+            
+        } catch (Exception e) {
+            request.setAttribute("error", e);
+            request.getRequestDispatcher("error.jsp").forward(request, response);
         }
     }
 
